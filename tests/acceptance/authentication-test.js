@@ -55,6 +55,32 @@ describe('Acceptance: Authentication', function() {
     });
   });
 
+  describe('the protected route in the engine', function() {
+    it('cannot be visited when the session is not authenticated', function() {
+      invalidateSession(application);
+      visit('/engine');
+
+      return andThen(() => {
+        expect(currentPath()).to.eq('login');
+      });
+    });
+
+    it('can be visited when the session is authenticated', function() {
+      server = new Pretender(function() {
+        this.get(`${config.apiHost}/posts`, () => [200, { 'Content-Type': 'application/json' }, '{"data":[]}']);
+      });
+      authenticateSession(application, { userId: 1, otherData: 'some-data' });
+      visit('/engine');
+
+      return andThen(() => {
+        expect(currentPath()).to.eq('engine.index');
+        let session = currentSession(application);
+        expect(session.get('data.authenticated.userId')).to.eql(1);
+        expect(session.get('data.authenticated.otherData')).to.eql('some-data');
+      });
+    });
+  });
+
   describe('the login route', function() {
     it('can be visited when the session is not authenticated', function() {
       invalidateSession(application);
